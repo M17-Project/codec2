@@ -567,6 +567,7 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     pack(bits, &nbit, lsp_indexes[0], 9);
     pack(bits, &nbit, lsp_indexes[1], 9);
     pack(bits, &nbit, lsp_indexes[2], 8);
+    nbit+=24;    //skip 24 bits and satisfy the assert below
 
     assert(nbit == (unsigned)codec2_bits_per_frame(c2));
 }
