@@ -61,6 +61,9 @@ void  encode_lsps_scalar(int indexes[], float lsp[], int order);
 void  decode_lsps_scalar(float lsp[], int indexes[], int order);
 void  encode_lspds_scalar(int indexes[], float lsp[], int order);
 void  decode_lspds_scalar(float lsp[], int indexes[], int order);
+//new approach by SP5WWP
+void  encode_lsp_svq(int indexes[], float lsp[], int order);
+void  decode_lsp_svq(float lsp[], int indexes[], int order);
 
 void encode_lsps_vq(int *indexes, float *x, float *xq, int order);
 void decode_lsps_vq(int *indexes, float *xq, int order, int stages);

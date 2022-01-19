@@ -40,6 +40,8 @@
 #include "phase.h"
 #include "mbest.h"
 
+#include "lsp_codebooks.h"
+
 #undef PROFILE
 #include "machdep.h"
 
@@ -201,6 +203,90 @@ void decode_lspds_scalar(
 	lsp_[i] = (PI/4000.0)*lsp__hz[i];
     }
 
+}
+
+/*
+lsps are in radians
+func returns 3 indexes (9+9+8=26 bits)
+*/
+
+void  encode_lsp_svq(int indexes[], float lsp[], int order)
+{
+  uint16_t ind_rv[3];
+  float clsp[LPC_ORD];
+	
+	float se;
+	float delta;
+	float min=10000.0;
+
+  //convert LSPs to cosine domain
+  for(uint8_t i=0; i<LPC_ORD; i++)
+  {
+    clsp[i]=cos(lsp[i]);
+  }
+
+  //codebook 1 search
+	for(uint16_t i=0; i<size_cb1; i++)
+	{
+		se=0.0;
+		
+		for(uint8_t j=0; j<3; j++)
+		{
+			delta = clsp[j]-cb1[i*3+j];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[0]=i;
+		}
+	}
+
+  min=10000.0;
+
+  //codebook 2 search
+	for(uint16_t i=0; i<size_cb2; i++)
+	{		
+		se=0.0;
+		
+		for(uint8_t j=0; j<3; j++)
+		{
+			delta = clsp[3+j]-cb2[i*3+j];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[1]=i;
+		}
+	}
+	  
+	min=10000.0;
+	
+	//codebook 3 search
+	for(uint16_t i=0; i<size_cb3; i++)
+	{
+		se=0.0;
+		
+		for(uint8_t j=0; j<4; j++)
+		{
+			delta = clsp[6+j]-cb3[i*4+j];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[2]=i;
+		}
+	}
+
+  //return  codebook indices
+	indexes[0]=ind_rv[0];
+  indexes[1]=ind_rv[1];
+  indexes[2]=ind_rv[2];
 }
 
 #define MIN(a,b) ((a)<(b)?(a):(b))

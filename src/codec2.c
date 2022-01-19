@@ -534,6 +534,7 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     float   e;
     int     Wo_index, e_index;
     int     lspd_indexes[LPC_ORD];
+    int     lsp_indexes[3];
     int     i;
     unsigned int nbit = 0;
 
@@ -557,10 +558,16 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     e_index = encode_energy(e, E_BITS);
     pack(bits, &nbit, e_index, E_BITS);
 
-    encode_lspds_scalar(lspd_indexes, lsps, LPC_ORD);
+    /*encode_lspds_scalar(lspd_indexes, lsps, LPC_ORD);
     for(i=0; i<LSPD_SCALAR_INDEXES; i++) {
 	pack(bits, &nbit, lspd_indexes[i], lspd_bits(i));
-    }
+    }*/
+
+    encode_lsp_svq(lsp_indexes, lsps, LPC_ORD);
+    pack(bits, &nbit, lsp_indexes[0], 9);
+    pack(bits, &nbit, lsp_indexes[1], 9);
+    pack(bits, &nbit, lsp_indexes[2], 8);
+
     assert(nbit == (unsigned)codec2_bits_per_frame(c2));
 }
 
