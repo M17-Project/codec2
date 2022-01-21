@@ -41,7 +41,8 @@
 #include "phase.h"
 #include "mbest.h"
 
-#include "lsp_codebooks.h"
+//#include "lsp_codebooks.h"
+#include "s_msvq.h"
 
 #undef PROFILE
 #include "machdep.h"
@@ -208,17 +209,15 @@ void decode_lspds_scalar(
 
 /*
 lsps are in radians
-func returns 3 indexes (9+9+8=26 bits)
 */
-
-void  encode_lsp_svq(int indexes[], float lsp[], int order)
+void encode_lsp_svq(int indexes[], float lsp[], int order)
 {
-  uint16_t ind_rv[3];
+  uint16_t ind_rv[1+Q1_STAGES+Q2_STAGES+Q3_STAGES];
   float clsp[LPC_ORD];
 	
 	float se;
 	float delta;
-	float min=10000.0;
+	float min;
 
   //convert LSPs to cosine domain
   for(uint8_t i=0; i<LPC_ORD; i++)
@@ -226,14 +225,15 @@ void  encode_lsp_svq(int indexes[], float lsp[], int order)
     clsp[i]=cos(lsp[i]);
   }
 
-  //codebook 1 search
-	for(uint16_t i=0; i<size_cb1; i++)
-	{
+  //coarse codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q0_SIZE); i++)
+  {
 		se=0.0;
 		
-		for(uint8_t j=0; j<3; j++)
+		for(uint8_t j=0; j<LPC_ORD; j++)
 		{
-			delta = clsp[j]-cb1[i*3+j];
+			delta = clsp[j]-cb_Q[i][j];
 			se += delta*delta;
 		}
 		
@@ -242,18 +242,23 @@ void  encode_lsp_svq(int indexes[], float lsp[], int order)
 			min = se;
 			ind_rv[0]=i;
 		}
-	}
+  }
 
+  //update clsp
+  for(uint8_t i=0; i<LPC_ORD; i++)
+  {
+    clsp[i]-=cb_Q[ind_rv[0]][i];
+  }
+
+  //Qf1_1 codebook search--------------------------------
   min=10000.0;
-
-  //codebook 2 search
-	for(uint16_t i=0; i<size_cb2; i++)
-	{		
+  for(uint8_t i=0; i<pow(2, Q1_SIZE); i++)
+  {
 		se=0.0;
 		
 		for(uint8_t j=0; j<3; j++)
 		{
-			delta = clsp[3+j]-cb2[i*3+j];
+			delta = clsp[j]-Qf1_1[i][j];
 			se += delta*delta;
 		}
 		
@@ -262,18 +267,23 @@ void  encode_lsp_svq(int indexes[], float lsp[], int order)
 			min = se;
 			ind_rv[1]=i;
 		}
-	}
-	  
-	min=10000.0;
-	
-	//codebook 3 search
-	for(uint16_t i=0; i<size_cb3; i++)
-	{
+  }
+
+  //update clsp
+  for(uint8_t i=0; i<3; i++)
+  {
+    clsp[i]-=Qf1_1[ind_rv[1]][i];
+  }
+
+  //Qf1_2 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q1_SIZE); i++)
+  {
 		se=0.0;
 		
-		for(uint8_t j=0; j<4; j++)
+		for(uint8_t j=0; j<3; j++)
 		{
-			delta = clsp[6+j]-cb3[i*4+j];
+			delta = clsp[j]-Qf1_2[i][j];
 			se += delta*delta;
 		}
 		
@@ -282,12 +292,219 @@ void  encode_lsp_svq(int indexes[], float lsp[], int order)
 			min = se;
 			ind_rv[2]=i;
 		}
-	}
+  }
+
+  //update clsp
+  for(uint8_t i=0; i<3; i++)
+  {
+    clsp[i]-=Qf1_2[ind_rv[2]][i];
+  }
+
+  //Qf1_3 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q1_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=0; j<3; j++)
+		{
+			delta = clsp[j]-Qf1_3[i][j];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[3]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=0; i<3; i++)
+  {
+    clsp[i]-=Qf1_3[ind_rv[3]][i];
+  }
+
+  //Qf2_1 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q2_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=3; j<6; j++)
+		{
+			delta = clsp[j]-Qf2_1[i][j-3];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[4]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=3; i<6; i++)
+  {
+    clsp[i]-=Qf2_1[ind_rv[4]][i-3];
+  }
+
+  //Qf2_2 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q2_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=3; j<6; j++)
+		{
+			delta = clsp[j]-Qf2_2[i][j-3];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[5]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=3; i<6; i++)
+  {
+    clsp[i]-=Qf2_2[ind_rv[5]][i-3];
+  }
+
+  //Qf2_3 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q2_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=3; j<6; j++)
+		{
+			delta = clsp[j]-Qf2_3[i][j-3];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[6]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=3; i<6; i++)
+  {
+    clsp[i]-=Qf2_3[ind_rv[6]][i-3];
+  }
+
+  //Qf2_4 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q2_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=3; j<6; j++)
+		{
+			delta = clsp[j]-Qf2_4[i][j-3];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[7]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=3; i<6; i++)
+  {
+    clsp[i]-=Qf2_4[ind_rv[7]][i-3];
+  }
+
+  //Qf3_1 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q3_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=6; j<LPC_ORD; j++)
+		{
+			delta = clsp[j]-Qf3_1[i][j-6];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[8]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=6; i<LPC_ORD; i++)
+  {
+    clsp[i]-=Qf3_1[ind_rv[8]][i-6];
+  }
+
+  //Qf3_2 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q3_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=6; j<LPC_ORD; j++)
+		{
+			delta = clsp[j]-Qf3_2[i][j-6];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[9]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=6; i<LPC_ORD; i++)
+  {
+    clsp[i]-=Qf3_2[ind_rv[9]][i-6];
+  }
+
+  //Qf3_3 codebook search--------------------------------
+  min=10000.0;
+  for(uint8_t i=0; i<pow(2, Q3_SIZE); i++)
+  {
+		se=0.0;
+		
+		for(uint8_t j=6; j<LPC_ORD; j++)
+		{
+			delta = clsp[j]-Qf3_3[i][j-6];
+			se += delta*delta;
+		}
+		
+		if(se < min)
+		{
+			min = se;
+			ind_rv[10]=i;
+		}
+  }
+
+  //update clsp
+  for(uint8_t i=6; i<LPC_ORD; i++)
+  {
+    clsp[i]-=Qf3_3[ind_rv[10]][i-6];
+  }
 
   //return  codebook indices
-	indexes[0]=ind_rv[0];
-  indexes[1]=ind_rv[1];
-  indexes[2]=ind_rv[2];
+  for(uint8_t i=0; i<1+Q1_STAGES+Q2_STAGES+Q3_STAGES; i++)
+  {
+    indexes[i]=ind_rv[i];
+  }
 }
 
 #define MIN(a,b) ((a)<(b)?(a):(b))

@@ -52,6 +52,8 @@
 #include "bpfb.h"
 #include "c2wideband.h"
 
+#include "s_msvq.h"
+
 #include "debug_alloc.h"
 
 /*---------------------------------------------------------------------------* \
@@ -533,14 +535,14 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     float   lsps[LPC_ORD];
     float   e;
     int     Wo_index, e_index;
-    int     lspd_indexes[LPC_ORD];
-    int     lsp_indexes[3];
+    //int     lspd_indexes[LPC_ORD];
+    int     lsp_indexes[1+Q1_STAGES+Q2_STAGES+Q3_STAGES];
     int     i;
     unsigned int nbit = 0;
 
     assert(c2 != NULL);
 
-    memset(bits, '\0', ((codec2_bits_per_frame(c2) + 7) / 8));
+    memset(bits, 0, codec2_bytes_per_frame(c2));
 
     /* first 10ms analysis frame - we just want voicing */
 
@@ -564,10 +566,16 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     }*/
 
     encode_lsp_svq(lsp_indexes, lsps, LPC_ORD);
-    pack(bits, &nbit, lsp_indexes[0], 9);
-    pack(bits, &nbit, lsp_indexes[1], 9);
-    pack(bits, &nbit, lsp_indexes[2], 8);
-    nbit+=24;    //skip 24 bits and satisfy the assert below
+
+    pack(bits, &nbit, lsp_indexes[0], 6);
+    for(uint8_t i=0; i<Q1_STAGES, i++)
+        pack(bits, &nbit, lsp_indexes[i+1], Q1_SIZE);
+    for(uint8_t i=0; i<Q2_STAGES, i++)
+        pack(bits, &nbit, lsp_indexes[i+1+Q1_STAGES], Q2_SIZE);
+    for(uint8_t i=0; i<Q3_STAGES, i++)
+        pack(bits, &nbit, lsp_indexes[i+1+Q1_STAGES+Q2_STAGES], Q3_SIZE);
+    
+    nbit+=4;    //skip 4 bits for now and satisfy the assert below
 
     assert(nbit == (unsigned)codec2_bits_per_frame(c2));
 }
