@@ -41,7 +41,6 @@
 #include "phase.h"
 #include "mbest.h"
 
-//#include "lsp_codebooks.h"
 #include "s_msvq.h"
 
 #undef PROFILE
