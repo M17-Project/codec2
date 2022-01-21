@@ -568,11 +568,11 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     encode_lsp_svq(lsp_indexes, lsps, LPC_ORD);
 
     pack(bits, &nbit, lsp_indexes[0], 6);
-    for(uint8_t i=0; i<Q1_STAGES, i++)
+    for(i=0; i<Q1_STAGES; i++)
         pack(bits, &nbit, lsp_indexes[i+1], Q1_SIZE);
-    for(uint8_t i=0; i<Q2_STAGES, i++)
+    for(i=0; i<Q2_STAGES; i++)
         pack(bits, &nbit, lsp_indexes[i+1+Q1_STAGES], Q2_SIZE);
-    for(uint8_t i=0; i<Q3_STAGES, i++)
+    for(i=0; i<Q3_STAGES; i++)
         pack(bits, &nbit, lsp_indexes[i+1+Q1_STAGES+Q2_STAGES], Q3_SIZE);
     
     nbit+=4;    //skip 4 bits for now and satisfy the assert below
