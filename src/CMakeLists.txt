@@ -173,6 +173,7 @@ set(CODEC2_SRCS
     ofdm.c
     ofdm_mode.c
     phase.c
+    s_msvq.c
     quantise.c
     pack.c
     codebook.c
