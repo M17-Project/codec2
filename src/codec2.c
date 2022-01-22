@@ -577,6 +577,39 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     
     nbit+=4;    //skip 4 bits for now and satisfy the assert below
 
+	//test
+	/*float testy[10];
+	for(i=0; i<10; i++)
+	{
+		testy[i]=cb_Q[lsp_indexes[0]][i];
+	}
+	for(i=0; i<3; i++)
+	{
+		testy[i]+=Qf1_1[lsp_indexes[1]][i];
+		testy[i]+=Qf1_2[lsp_indexes[2]][i];
+		testy[i]+=Qf1_3[lsp_indexes[3]][i];
+		testy[i+3]+=Qf2_1[lsp_indexes[4]][i];
+		testy[i+3]+=Qf2_2[lsp_indexes[5]][i];
+		testy[i+3]+=Qf2_3[lsp_indexes[6]][i];
+		testy[i+3]+=Qf2_4[lsp_indexes[7]][i];
+	}
+	for(i=0; i<4; i++)
+	{
+		testy[i+6]+=Qf3_1[lsp_indexes[8]][i];
+		testy[i+6]+=Qf3_2[lsp_indexes[9]][i];
+		testy[i+6]+=Qf3_3[lsp_indexes[10]][i];
+	}
+	for(i=0; i<10; i++)
+	{
+		if(testy[i]<-1.0 || testy[i]>1.0)
+		{
+			printf("%1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
+					testy[0], testy[1], testy[2], testy[3], testy[4],
+					testy[5], testy[6], testy[7], testy[8], testy[9]);
+			break;
+		}
+	}*/
+
     assert(nbit == (unsigned)codec2_bits_per_frame(c2));
 }
 
@@ -634,7 +667,7 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
     decode_lspds_scalar(&lsps[1][0], lspd_indexes, LPC_ORD);*/
 
     //unpack codebook indices
-    lsp_indexes[0] = unpack(bits, &nbit, lspd_bits(i));
+    lsp_indexes[0] = unpack(bits, &nbit, Q0_SIZE);
     for (i=1; i<1+Q1_STAGES+Q2_STAGES+Q3_STAGES; i++)
     {
 	    lsp_indexes[i] = unpack(bits, &nbit, Q1_SIZE);    //Qx_SIZE are all =4, so - oh well
@@ -647,7 +680,7 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
         lsps[1][i]=cb_Q[lsp_indexes[0]][i];
     }
     //Qf1
-    for (i=0; i<3; i++)
+    /*for (i=0; i<3; i++)
     {
         lsps[1][i]+=Qf1_1[lsp_indexes[1]][i]+Qf1_2[lsp_indexes[2]][i]+Qf1_3[lsp_indexes[3]][i];
     }
@@ -660,7 +693,49 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
     for (i=6; i<LPC_ORD; i++)
     {
         lsps[1][i]+=Qf3_1[lsp_indexes[8]][i-6]+Qf3_2[lsp_indexes[9]][i-6]+Qf3_3[lsp_indexes[10]][i-6];
-    }
+    }*/
+
+	//sometimes the quantizer produces a vector with the
+	//first value slightly larger than 1.0
+	//and we cannot allow that - we hard limit it to 0.999
+	//even less often, both 1st and 2nd LSFs are over 1.0
+	if (lsps[1][0]>1.0)
+		lsps[1][0]=0.999;
+	if (lsps[1][1]>1.0)
+		lsps[1][1]=0.995;
+
+	//test
+	float testy[10];
+	for(i=0; i<10; i++)
+	{
+		testy[i]=cb_Q[lsp_indexes[0]][i];
+	}
+	/*for(i=0; i<3; i++)
+	{
+		testy[i]+=Qf1_1[lsp_indexes[1]][i];
+		testy[i]+=Qf1_2[lsp_indexes[2]][i];
+		testy[i]+=Qf1_3[lsp_indexes[3]][i];
+		testy[i+3]+=Qf2_1[lsp_indexes[4]][i];
+		testy[i+3]+=Qf2_2[lsp_indexes[5]][i];
+		testy[i+3]+=Qf2_3[lsp_indexes[6]][i];
+		testy[i+3]+=Qf2_4[lsp_indexes[7]][i];
+	}
+	for(i=0; i<4; i++)
+	{
+		testy[i+6]+=Qf3_1[lsp_indexes[8]][i];
+		testy[i+6]+=Qf3_2[lsp_indexes[9]][i];
+		testy[i+6]+=Qf3_3[lsp_indexes[10]][i];
+	}*/
+	for(i=0; i<10; i++)
+	{
+		//if(testy[i]<-1.0 || testy[i]>1.0)
+		{
+			printf("%1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
+					testy[0], testy[1], testy[2], testy[3], testy[4],
+					testy[5], testy[6], testy[7], testy[8], testy[9]);
+			break;
+		}
+	}
 
     //convert back from cosine to frequency domain in radians
     for (i=0; i<LPC_ORD; i++)
