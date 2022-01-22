@@ -652,7 +652,7 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
         lsps[1][i]+=Qf1_1[lsp_indexes[1]][i]+Qf1_2[lsp_indexes[2]][i]+Qf1_3[lsp_indexes[3]][i];
     }
     //Qf2
-    for (i=3; i<6; i++)
+    for (i=3 i<6; i++)
     {
         lsps[1][i]+=Qf2_1[lsp_indexes[4]][i-3]+Qf2_2[lsp_indexes[5]][i-3]+Qf2_3[lsp_indexes[6]][i-3]+Qf2_4[lsp_indexes[7]][i-3];
     }
@@ -660,6 +660,12 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
     for (i=6; i<LPC_ORD; i++)
     {
         lsps[1][i]+=Qf3_1[lsp_indexes[8]][i-6]+Qf3_2[lsp_indexes[9]][i-6]+Qf3_3[lsp_indexes[10]][i-6];
+    }
+
+    //convert back from cosine to frequency domain in radians
+    for (i=0; i<LPC_ORD; i++)
+    {
+        lsps[1][i]=acos(lsps[1][i]);    //this can be done faster using a LUT
     }
 
     /* interpolate ------------------------------------------------*/
