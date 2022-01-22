@@ -594,7 +594,8 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
 void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char * bits)
 {
     MODEL   model[2];
-    int     lspd_indexes[LPC_ORD];
+    //int     lspd_indexes[LPC_ORD];
+    int     lsp_indexes[1+Q1_STAGES+Q2_STAGES+Q3_STAGES];
     float   lsps[2][LPC_ORD];
     int     Wo_index, e_index;
     float   e[2];
@@ -627,10 +628,39 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
     e_index = unpack(bits, &nbit, E_BITS);
     e[1] = decode_energy(e_index, E_BITS);
 
-    for(i=0; i<LSPD_SCALAR_INDEXES; i++) {
+    /*for(i=0; i<LSPD_SCALAR_INDEXES; i++) {
 	lspd_indexes[i] = unpack(bits, &nbit, lspd_bits(i));
     }
-    decode_lspds_scalar(&lsps[1][0], lspd_indexes, LPC_ORD);
+    decode_lspds_scalar(&lsps[1][0], lspd_indexes, LPC_ORD);*/
+
+    //unpack codebook indices
+    lsp_indexes[0] = unpack(bits, &nbit, lspd_bits(i));
+    for (i=1; i<1+Q1_STAGES+Q2_STAGES+Q3_STAGES; i++)
+    {
+	    lsp_indexes[i] = unpack(bits, &nbit, Q1_SIZE);    //Qx_SIZE are all =4, so - oh well
+    }
+
+    //reconstruct LSP vector
+    //Q0 - coarse init
+    for (i=0; i<LPC_ORD; i++)
+    {
+        lsps[1][i]=cb_Q[lsp_indexes[0]][i];
+    }
+    //Qf1
+    for (i=0; i<3; i++)
+    {
+        lsps[1][i]+=Qf1_1[lsp_indexes[1]][i]+Qf1_2[lsp_indexes[2]][i]+Qf1_3[lsp_indexes[3]][i];
+    }
+    //Qf2
+    for (i=3 i<6; i++)
+    {
+        lsps[1][i]+=Qf2_1[lsp_indexes[4]][i-3]+Qf2_2[lsp_indexes[5]][i-3]+Qf2_3[lsp_indexes[6]][i-3]+Qf2_4[lsp_indexes[7]][i-3];
+    }
+    //Qf3
+    for (i=6; i<LPC_ORD; i++)
+    {
+        lsps[1][i]+=Qf3_1[lsp_indexes[8]][i-6]+Qf3_2[lsp_indexes[9]][i-6]+Qf3_3[lsp_indexes[10]][i-6];
+    }
 
     /* interpolate ------------------------------------------------*/
 
