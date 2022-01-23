@@ -214,15 +214,18 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
   uint16_t ind_rv[1+Q1_STAGES+Q2_STAGES+Q3_STAGES];
   float clsp[LPC_ORD];
 	
-	float se;
-	float delta;
-	float min;
+  float se;
+  float delta;
+  float min;
 
   //convert LSPs to cosine domain
   for(uint8_t i=0; i<LPC_ORD; i++)
   {
     clsp[i]=cos(lsp[i]);
   }
+
+  for(uint8_t i=0; i<1+Q1_STAGES+Q2_STAGES+Q3_STAGES; i++)
+	ind_rv[i]=0;
 
   //coarse codebook search--------------------------------
   min=10000.0;
@@ -249,6 +252,8 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
     clsp[i]-=cb_Q[ind_rv[0]][i];
   }
 
+  float l[4]; //for checking if LSFs are in correct order
+
   //Qf1_1 codebook search--------------------------------
   min=10000.0;
   for(uint8_t i=0; i<pow(2, Q1_SIZE); i++)
@@ -260,8 +265,12 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			delta = clsp[j]-Qf1_1[i][j];
 			se += delta*delta;
 		}
+
+		l[0]=clsp[0]-Qf1_1[i][0];
+		l[1]=clsp[1]-Qf1_1[i][1];
+		l[2]=clsp[2]-Qf1_1[i][2];
 		
-		if(se < min)
+		if(se<min)
 		{
 			min = se;
 			ind_rv[1]=i;
@@ -286,7 +295,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[0]-Qf1_2[i][0];
+		l[1]=clsp[1]-Qf1_2[i][1];
+		l[2]=clsp[2]-Qf1_2[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[2]=i;
@@ -311,7 +324,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[0]-Qf1_3[i][0];
+		l[1]=clsp[1]-Qf1_3[i][1];
+		l[2]=clsp[2]-Qf1_3[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[3]=i;
@@ -326,6 +343,7 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 
   //Qf2_1 codebook search--------------------------------
   min=10000.0;
+  float l_p=l[2];
   for(uint8_t i=0; i<pow(2, Q2_SIZE); i++)
   {
 		se=0.0;
@@ -336,7 +354,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[3]-Qf2_1[i][0];
+		l[1]=clsp[4]-Qf2_1[i][1];
+		l[2]=clsp[5]-Qf2_1[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[4]=i;
@@ -361,7 +383,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[3]-Qf2_2[i][0];
+		l[1]=clsp[4]-Qf2_2[i][1];
+		l[2]=clsp[5]-Qf2_2[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[5]=i;
@@ -386,7 +412,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[3]-Qf2_3[i][0];
+		l[1]=clsp[4]-Qf2_3[i][1];
+		l[2]=clsp[5]-Qf2_3[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[6]=i;
@@ -411,7 +441,11 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[3]-Qf2_4[i][0];
+		l[1]=clsp[4]-Qf2_4[i][1];
+		l[2]=clsp[5]-Qf2_4[i][2];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[7]=i;
@@ -426,6 +460,7 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 
   //Qf3_1 codebook search--------------------------------
   min=10000.0;
+  l_p=l[2];
   for(uint8_t i=0; i<pow(2, Q3_SIZE); i++)
   {
 		se=0.0;
@@ -436,7 +471,12 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[6]-Qf3_1[i][0];
+		l[1]=clsp[7]-Qf3_1[i][1];
+		l[2]=clsp[8]-Qf3_1[i][2];
+		l[3]=clsp[9]-Qf3_1[i][3];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[8]=i;
@@ -461,7 +501,12 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[6]-Qf3_2[i][0];
+		l[1]=clsp[7]-Qf3_2[i][1];
+		l[2]=clsp[8]-Qf3_2[i][2];
+		l[3]=clsp[9]-Qf3_2[i][3];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[9]=i;
@@ -486,7 +531,12 @@ void encode_lsp_svq(int indexes[], float lsp[], int order)
 			se += delta*delta;
 		}
 		
-		if(se < min)
+		l[0]=clsp[6]-Qf3_3[i][0];
+		l[1]=clsp[7]-Qf3_3[i][1];
+		l[2]=clsp[8]-Qf3_3[i][2];
+		l[3]=clsp[9]-Qf3_3[i][3];
+		
+		if(se<min)
 		{
 			min = se;
 			ind_rv[10]=i;

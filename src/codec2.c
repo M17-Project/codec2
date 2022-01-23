@@ -578,7 +578,7 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
     nbit+=4;    //skip 4 bits for now and satisfy the assert below
 
 	//test
-	/*float testy[10];
+	float testy[10];
 	for(i=0; i<10; i++)
 	{
 		testy[i]=cb_Q[lsp_indexes[0]][i];
@@ -599,16 +599,33 @@ void codec2_encode_3200(struct CODEC2 *c2, unsigned char * bits, short speech[])
 		testy[i+6]+=Qf3_2[lsp_indexes[9]][i];
 		testy[i+6]+=Qf3_3[lsp_indexes[10]][i];
 	}
-	for(i=0; i<10; i++)
+	for(i=1; i<10; i++)
 	{
-		if(testy[i]<-1.0 || testy[i]>1.0)
+		//if(testy[i]<-1.0 || testy[i]>1.0)// || testy[0]<testy[1] || testy[1]<testy[2])
 		{
-			printf("%1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
+			printf("LSP: %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f\n",
+					cos(lsps[0]), cos(lsps[1]), cos(lsps[2]), cos(lsps[3]), cos(lsps[4]),
+					cos(lsps[5]), cos(lsps[6]), cos(lsps[7]), cos(lsps[8]), cos(lsps[9]));
+			printf("VEC: %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f, %1.12f\n",
 					testy[0], testy[1], testy[2], testy[3], testy[4],
 					testy[5], testy[6], testy[7], testy[8], testy[9]);
+			printf("IND: {%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d}\n\n",
+					lsp_indexes[0], lsp_indexes[1], lsp_indexes[2], lsp_indexes[3], lsp_indexes[4],
+					lsp_indexes[5], lsp_indexes[6], lsp_indexes[7], lsp_indexes[8], lsp_indexes[9],
+					lsp_indexes[10]);
 			break;
 		}
-	}*/
+		/*if(lsps[i]<=0 || lsps[i]>=PI) //shouldnt happen
+		{
+			printf("LSP: %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
+					cos(lsps[0]), cos(lsps[1]), cos(lsps[2]), cos(lsps[3]), cos(lsps[4]),
+					cos(lsps[5]), cos(lsps[6]), cos(lsps[7]), cos(lsps[8]), cos(lsps[9]));
+			printf("IND: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,\n",
+					lsp_indexes[0], lsp_indexes[1], lsp_indexes[2], lsp_indexes[3], lsp_indexes[4],
+					lsp_indexes[5], lsp_indexes[6], lsp_indexes[7], lsp_indexes[8], lsp_indexes[9]);
+			break;
+		}*/
+	}
 
     assert(nbit == (unsigned)codec2_bits_per_frame(c2));
 }
@@ -680,7 +697,7 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
         lsps[1][i]=cb_Q[lsp_indexes[0]][i];
     }
     //Qf1
-    /*for (i=0; i<3; i++)
+    for (i=0; i<3; i++)
     {
         lsps[1][i]+=Qf1_1[lsp_indexes[1]][i]+Qf1_2[lsp_indexes[2]][i]+Qf1_3[lsp_indexes[3]][i];
     }
@@ -693,24 +710,27 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
     for (i=6; i<LPC_ORD; i++)
     {
         lsps[1][i]+=Qf3_1[lsp_indexes[8]][i-6]+Qf3_2[lsp_indexes[9]][i-6]+Qf3_3[lsp_indexes[10]][i-6];
-    }*/
+    }
 
-	//sometimes the quantizer produces a vector with the
-	//first value slightly larger than 1.0
-	//and we cannot allow that - we hard limit it to 0.999
-	//even less often, both 1st and 2nd LSFs are over 1.0
+	//sometimes the quantizer produces a bad vector...
+	if (lsps[1][1]>lsps[1][0])
+	{
+		float tmp=lsps[1][0];
+		lsps[1][0]=lsps[1][1];
+		lsps[1][1]=tmp;
+	}
 	if (lsps[1][0]>1.0)
-		lsps[1][0]=0.999;
-	if (lsps[1][1]>1.0)
-		lsps[1][1]=0.995;
+		lsps[1][0]=0.995;
+	/*if (lsps[1][1]>1.0)
+		lsps[1][1]=0.98;*/
 
 	//test
-	float testy[10];
+	/*float testy[10];
 	for(i=0; i<10; i++)
 	{
 		testy[i]=cb_Q[lsp_indexes[0]][i];
 	}
-	/*for(i=0; i<3; i++)
+	for(i=0; i<3; i++)
 	{
 		testy[i]+=Qf1_1[lsp_indexes[1]][i];
 		testy[i]+=Qf1_2[lsp_indexes[2]][i];
@@ -728,11 +748,21 @@ void codec2_decode_3200(struct CODEC2 *c2, short speech[], const unsigned char *
 	}*/
 	for(i=0; i<10; i++)
 	{
-		//if(testy[i]<-1.0 || testy[i]>1.0)
+		/*if(testy[i]<-1.0 || testy[i]>1.0)
 		{
 			printf("%1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
 					testy[0], testy[1], testy[2], testy[3], testy[4],
 					testy[5], testy[6], testy[7], testy[8], testy[9]);
+			break;
+		}*/
+		if(lsps[1][i]<=-1.0 || lsps[1][i]>=1.0)
+		{
+			printf("LSP: %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f, %1.3f\n",
+					lsps[1][0], lsps[1][1], lsps[1][2], lsps[1][3], lsps[1][4],
+					lsps[1][5], lsps[1][6], lsps[1][7], lsps[1][8], lsps[1][9]);
+			printf("IND: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,\n",
+					lsp_indexes[0], lsp_indexes[1], lsp_indexes[2], lsp_indexes[3], lsp_indexes[4],
+					lsp_indexes[5], lsp_indexes[6], lsp_indexes[7], lsp_indexes[8], lsp_indexes[9]);
 			break;
 		}
 	}
